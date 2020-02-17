@@ -14,7 +14,7 @@
 -- *********************************************************************
 
 
-local lexer = {}  -- Our module; members are added below
+local lexit = {}  -- Our module; members are added below
 
 
 -- *********************************************************************
@@ -22,19 +22,19 @@ local lexer = {}  -- Our module; members are added below
 -- *********************************************************************
 
 -- Numeric constants representing lexeme categories
-lexer.KEY    = 1
-lexer.ID     = 2
-lexer.NUMLIT = 3
-lexer.STRLIT = 4
-lexer.OP 	 = 5
-lexer.PUNCT  = 6
-lexer.MAL 	 = 7
+lexit.KEY    = 1
+lexit.ID     = 2
+lexit.NUMLIT = 3
+lexit.STRLIT = 4
+lexit.OP 	 = 5
+lexit.PUNCT  = 6
+lexit.MAL 	 = 7
 
 
 -- catnames
 -- Array of names of lexeme categories.
 -- Human-readable strings. Indices are above numeric constants.
-lexer.catnames = {
+lexit.catnames = {
     "Keyword",
     "Identifier",
     "NumericLiteral",
@@ -156,10 +156,8 @@ function lexit.lex(program)
     local START     = 1
     local LETTER    = 2
     local DIGIT     = 3
-    local DIGEX     = 4
-    local PLUSMINUS = 5
-    local SINGLEQ   = 6
-    local DOUBLEQ   = 7
+    local EXP       = 4
+
 
     -- ***** Character-Related Utility Functions *****
 
@@ -233,11 +231,12 @@ function lexit.lex(program)
         error("'DONE' state should not be handled\n")
     end
 
+
     local function handle_START()
     	if isIllegal(ch) then
     		add1()
     		state = DONE
-    		category = lexer.MAL
+    		category = lexit.MAL
     	elseif isLetter(ch) or ch == "_" then
     		add1()
     		state = LETTER
@@ -247,20 +246,72 @@ function lexit.lex(program)
     	elseif ch == "'" or ch == '"' then
     		add1()
     		state = STRLITERAL
-
-
+        elseif ch == "<" or ch == ">" or ch == "+" or
+            ch == "-" or ch == "*" or ch == "/" or
+            ch == "%" or ch == "[" or ch == "]" then
+                add1()
+                state = DONE
+                category = lexit.OP
+        elseif ch == "!" and nextChar() == "=" or
+               ch == "<" and nextChar() == "=" or
+               ch == ">" and nextChar() == "=" or
+               ch == "=" and nextChar() == "=" then
+                add1()
+                add1()
+                state = DONE
+                category = lexit.OP
+    	else 
+    		add1()
+    		state = DONE
+    		category = lexit.PUNCT
+    	end
     end
 
+    local function handle_DIGIT()
+    	if isDigit(ch) then
+    		add1()
+    	elseif ch == "e" or ch == "E" then -- legal exponent, now we need to check next two characters
+            nextCh = lookAhead(1) 
+            nextnextCh = lookAhead(2) 
+    		if isDigit(nextCh) then --legal exponent followed by digit
+    			add1()
+    			state = EXP  
+            elseif nextCh == "+" and isDigit(nextnextCh) then -- exponent followed by a "+" and digit
+                add1()
+                add1()
+                state = EXP
+    		else
+    			state = DONE 
+    			category = lexit.NUMLIT
+    		end
+    	else
+    		state = DONE
+    		category = lexit.NUMLIT
+    	end
+    end
+
+
+    local function handle_EXP()
+        if isDigit(ch) then
+            add1()
+        else
+            state = DONE
+            category = lexit.NUMLIT
+
+        end
+    end
+
+
    local function handle_LETTER()
-   		if isLetter(ch) or isDigit(ch) or ch == "_" then --TODO why check for isDigit() here?
+   		if isLetter(ch) or isDigit(ch) or ch == "_" then -- we have a letter followed by another lette or digit
    			add1()
    		else
    			state = DONE
    			if lexstr == "and" or lexstr == "char" or lexstr == "elif" or lexstr == "else" or
-   			lexstr == "end" or lexstr == "false" or lexstr == "func" or lexstr == "if" 
-   			or lexstr == "input" or lexstr == "not" or lexstr == "or" or lexstr == "print"
-   			or lexstr == "return" or lexstr == "true" or lexstr == "while" then
-   				category = lexit.KEY
+   				 lexstr == "end" or lexstr == "false" or lexstr == "func" or lexstr == "if" or
+   				 lexstr == "input" or lexstr == "not" or lexstr == "or" or lexstr == "print" or
+   				 lexstr == "return" or lexstr == "true" or lexstr == "while" then
+   				 category = lexit.KEY
    			else
    				category = lexit.ID
    			end
@@ -268,17 +319,49 @@ function lexit.lex(program)
    end
 
 
+       -- ***** Table of State-Handler Functions *****
+
+	    handlers = {
+	        [DONE]=handle_DONE,
+	        [START]=handle_START,
+	        [LETTER]=handle_LETTER,
+            [DIGIT]=handle_DIGIT,
+	        [EXP]=handle_EXP,
+	    }
+
+    -- -- ***** Iterator Function *****
+
+    -- getLexeme
+    -- Called each time through the for-in loop.
+    -- Returns a pair: lexeme-string (string) and category (int), or
+    -- nil, nil if no more lexemes.
+    local function getLexeme(dummy1, dummy2)
+        if pos > program:len() then
+            return nil, nil
+        end
+        lexstr = ""
+        state = START
+        while state ~= DONE do
+            ch = currChar()
+            handlers[state]()
+        end
+
+        skipWhitespace()
+        return lexstr, category
+    end
+
+    -- ***** Body of Function lex *****
+
+    -- Initialize & return the iterator function
+    pos = 1
+    skipWhitespace()
+    return getLexeme, nil, nil
+end
 
 
-
-
-
-
-
-
-
-
-end -- end lexit.lex
+-- *********************************************************************
+-- Module Table Return
+-- *********************************************************************
 
 
 return lexit

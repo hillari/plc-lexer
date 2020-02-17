@@ -1,4 +1,4 @@
-#!/usr/bin/env lua
+#!/usr/bin/env lua5.3
 -- lexit_test.lua
 -- Glenn G. Chappell
 -- 2020-02-12
