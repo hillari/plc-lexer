@@ -145,18 +145,22 @@ function lexit.lex(program)
     local state     -- Current state for our state machine
     local ch        -- Current character
     local lexstr    -- The lexeme, so far
-    local prevLex
+    local prevLex --TODO remove?
     local category  -- Category of lexeme, set when state set to DONE
-    local prevCat
+    local prevCat -- TODO remove?
     local handlers  -- Dispatch table; value created later
 
     -- ***** States *****
 
-    local DONE      = 0
-    local START     = 1
-    local LETTER    = 2
-    local DIGIT     = 3
-    local EXP       = 4
+    local DONE       = 0
+    local START      = 1
+    local LETTER     = 2
+    local DIGIT      = 3
+    local EXP        = 4
+    local SINGLEQ    = 5
+    local DBLQ       = 6
+    local ESCAPE     = 7
+
 
 
     -- ***** Character-Related Utility Functions *****
@@ -243,29 +247,111 @@ function lexit.lex(program)
     	elseif isDigit(ch) then
     		add1()
     		state = DIGIT
-    	elseif ch == "'" or ch == '"' then
+    	elseif ch == "'" then
     		add1()
-    		state = STRLITERAL
-        elseif ch == "<" or ch == ">" or ch == "+" or
-            ch == "-" or ch == "*" or ch == "/" or
-            ch == "%" or ch == "[" or ch == "]" then
-                add1()
-                state = DONE
-                category = lexit.OP
-        elseif ch == "!" and nextChar() == "=" or
+    		state = SINGLEQ
+        elseif ch == '"' then
+            add1()
+            state = DBLQ
+        elseif 
                ch == "<" and nextChar() == "=" or
                ch == ">" and nextChar() == "=" or
-               ch == "=" and nextChar() == "=" then
+               ch == "=" and nextChar() == "=" or
+               ch == "!" and nextChar() == "=" then
                 add1()
                 add1()
                 state = DONE
                 category = lexit.OP
+        elseif ch == "<" or ch == ">" or ch == "+" or
+            ch == "-" or ch == "*" or ch == "/" or
+            ch == "%" or ch == "[" or ch == "]"  or ch == "=" then
+                add1()
+                state = DONE
+                category = lexit.OP
+
     	else 
     		add1()
     		state = DONE
     		category = lexit.PUNCT
     	end
     end
+
+
+
+-- -------- STOPPED HERE ---------
+-- To do:
+--    - finish handle_ESCAPE
+--    - finish malformed string literals
+
+-- currently failing on escapes: " string with escape codes"
+-- ie "\\a\"
+-- should be "\a\"
+
+-- I'm dropping the escape char, but I need to allow for additional escapes after
+
+
+
+
+    local function handle_SINGLEQ()
+
+        if ch == '\\' then
+            drop()
+
+
+        elseif ch == '' then
+            state = DONE
+            category = lexit.MAL
+        elseif ch == "'" then
+            add1()
+            state = DONE
+            category = lexit.STRLIT
+        else
+            add1()
+        end
+    end
+
+
+
+
+    local function handle_DBLQ()
+        if ch == "\\" then
+            drop()
+
+        elseif ch == '' then
+            state = DONE
+            category = lexit.MAL
+
+        -- elseif ch == "'" then
+        --     add1()
+        --     state = DONE
+        --     category = lexit.MAL
+
+        -- if ch == '\\' and isPrintableASCII(nextChar(ch)) then
+        --     add1()
+        elseif ch == '"' then
+            add1()
+            state = DONE
+            category = lexit.STRLIT
+        else
+            add1()
+        end
+    end
+
+
+
+
+
+
+    -- local function handle_ESCAPE()
+    --     if ch == ""
+
+    -- end
+
+
+
+
+
+
 
     local function handle_DIGIT()
     	if isDigit(ch) then
@@ -327,6 +413,9 @@ function lexit.lex(program)
 	        [LETTER]=handle_LETTER,
             [DIGIT]=handle_DIGIT,
 	        [EXP]=handle_EXP,
+            [SINGLEQ]=handle_SINGLEQ,
+            [DBLQ]=handle_DBLQ,
+            [ESCAPE]=handle_ESCAPE,
 	    }
 
     -- -- ***** Iterator Function *****
