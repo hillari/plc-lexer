@@ -48,14 +48,13 @@ local lexit = {}  -- Our module; members are added below
 -- *********************************************************************
 
 -- Numeric constants representing lexeme categories
-lexit.KEY    = 1
-lexit.ID     = 2
-lexit.NUMLIT = 3
-lexit.STRLIT = 4
-lexit.OP 	 = 5
-lexit.PUNCT  = 6
-lexit.MAL 	 = 7
-
+lexit.KEY      = 1
+lexit.ID       = 2
+lexit.NUMLIT   = 3
+lexit.STRLIT   = 4
+lexit.OP 	   = 5
+lexit.PUNCT    = 6
+lexit.MAL 	   = 7
 
 -- catnames
 -- Array of names of lexeme categories.
@@ -77,7 +76,6 @@ lexit.catnames = {
 
 -- All functions return false when given a string whose length is not
 -- exactly 1.
-
 
 -- isLetter
 -- @ Glenn Chappell
@@ -155,14 +153,12 @@ local function isIllegal(c)
 end
 
 
-
 -- *********************************************************************
 -- The lexit
 -- *********************************************************************
 
-
 -- lex
--- @ Glenn Chappell
+-- @ Glenn Chappell and Hillari Denny
 -- Our lexit
 -- Intended for use in a for-in loop:
 --     for lexstr, cat in lexit.lex(program) do
@@ -178,9 +174,7 @@ function lexit.lex(program)
     local state     -- Current state for our state machine
     local ch        -- Current character
     local lexstr    -- The lexeme, so far
-    local prevLex --TODO remove?
     local category  -- Category of lexeme, set when state set to DONE
-    local prevCat -- TODO remove?
     local handlers  -- Dispatch table; value created later
 
     -- ***** States *****
@@ -192,8 +186,6 @@ function lexit.lex(program)
     local EXP        = 4
     local SINGLEQ    = 5
     local DBLQ       = 6
-
-
 
     -- ***** Character-Related Utility Functions *****
 
@@ -230,7 +222,6 @@ function lexit.lex(program)
         lexstr = lexstr .. currChar()
         drop1()
     end
-
 
     -- skipWhitespace
     -- @ Glenn Chappell
@@ -270,6 +261,7 @@ function lexit.lex(program)
         return program:sub(pos+n, pos+n)
     end
 
+
     -- ***** State-Handler Functions *****
 
     -- A function with a name like handle_XYZ is the handler function
@@ -280,12 +272,11 @@ function lexit.lex(program)
         error("'DONE' state should not be handled\n")
     end
 
-
     -- handle_START 
     -- @ Glenn Chappell and Hillari Denny
 
-    -- function to handle checking which state we need to transition to on first character
-    -- handling of operators is done here. This could probably be moved to a separate funciton 
+    -- function to handle checking which state we need to transition to on first character.
+    -- Handling of operators is done here. This could probably be moved to a separate funciton 
     -- for brevity but...¯\_(ツ)_/¯
     local function handle_START()
     	if isIllegal(ch) then
