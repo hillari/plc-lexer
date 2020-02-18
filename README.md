@@ -4,7 +4,7 @@ CSCE A331 Programming Language Concepts
 2/17/2020
 
 ----
-###Lexer in Lua
+### Lexer in Lua
 
 The file lexit.lua implements a lexical analyzer for the programming language "Degu", created by Dr. Glenn Chappell at the Univeristy of Alaska Fairbanks. Specific lexeme specification for Degu is not included in this readme.
 The code in lexit.lua implements the first phase of compilation, lexical analysis. It is represented as a state machine and converts input into a sequence of tokens. 
