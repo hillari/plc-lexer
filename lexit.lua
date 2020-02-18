@@ -1,13 +1,39 @@
+-- Hillari M. Denny
+-- CSCE A331 Assignment 3
+
+-- =====================================================================
+-- Exercise 1 - Running a Forth Program
+-- =====================================================================
+
+-- On my OS (Linux Mint) I ran:
+-- >> apt-get gforth
+-- >> gforth
+
+-- Entering "include check_forth.fs" yielded the following output:
+
+-- Secret message #3:
+
+-- I am one with the Forth. The Forth is with me.
+
+-- =====================================================================
+-- Exercise 2 - Lexer in Lua
 -- lexit.lua
--- Hillari M. Denny, Glenn G. Chappell
--- CSCE A331 Assignment 3, Exercise 2
+-- https://github.com/hillari/plc-lexer
+-- @ Glen G. Chappell, Hillari M. Denny
 
--- This code is based on the lexer example provided by Dr. Chappell, found here
--- https://github.com/ggchappell/cs331-2020-01/blob/master/lexer.lua
 
--- This code is a lexical analyzer for the programming language Degu. It uses much 
--- of the same program structure and utility functions provided in Dr. Chappels code. 
+-- This code is based on the lexer example provided by Dr. Chappell.
 
+-- This program is a lexical analyzer for the Programming Language "Degu".
+-- It uses some of the structure and functions provided by Dr. Chappel
+-- In the code procided in lecture and on github. Each function contains 
+-- the author names and a brief description of it's purpose.
+--
+-- There is probably some logic that could be re-written to be more 
+-- efficient and readable, but it passes all tests in lexit_test.lua 
+-- Overall, this was a very enjoyable programming assignment and the 
+-- test suites provided by Dr. Chappell are amazing!!
+-- =====================================================================
 
 -- *********************************************************************
 -- Module Table Initialization
@@ -54,6 +80,7 @@ lexit.catnames = {
 
 
 -- isLetter
+-- @ Glenn Chappell
 -- Returns true if string c is a letter character, false otherwise.
 local function isLetter(c)
     if c:len() ~= 1 then
@@ -69,6 +96,7 @@ end
 
 
 -- isDigit
+-- @ Glenn Chappell
 -- Returns true if string c is a digit character, false otherwise.
 local function isDigit(c)
     if c:len() ~= 1 then
@@ -98,6 +126,7 @@ local function isWhitespace(c)
 end
 
 -- isPrintableASCII
+-- @ Glenn Chappell
 -- Returns true if string c is a printable ASCII character (codes 32 " "
 -- through 126 "~"), false otherwise.
 local function isPrintableASCII(c)
@@ -111,6 +140,7 @@ local function isPrintableASCII(c)
 end
 
 -- isIllegal
+-- @ Glenn Chappell
 -- Returns true if string c is an illegal character, false otherwise.
 local function isIllegal(c)
     if c:len() ~= 1 then
@@ -132,6 +162,7 @@ end
 
 
 -- lex
+-- @ Glenn Chappell
 -- Our lexit
 -- Intended for use in a for-in loop:
 --     for lexstr, cat in lexit.lex(program) do
@@ -161,13 +192,13 @@ function lexit.lex(program)
     local EXP        = 4
     local SINGLEQ    = 5
     local DBLQ       = 6
-    local ESCAPE     = 7
 
 
 
     -- ***** Character-Related Utility Functions *****
 
     -- currChar
+    -- @ Glenn Chappell
     -- Return the current character, at index pos in program. Return
     -- value is a single-character string, or the empty string if pos is
     -- past the end.
@@ -176,6 +207,7 @@ function lexit.lex(program)
     end
 
     -- nextChar
+    -- @ Glenn Chappell
     -- Return the next character, at index pos+1 in program. Return
     -- value is a single-character string, or the empty string if pos+1
     -- is past the end.
@@ -184,12 +216,14 @@ function lexit.lex(program)
     end
 
     -- drop1
+    -- @ Glenn Chappell
     -- Move pos to the next character.
     local function drop1()
         pos = pos+1
     end
 
     -- add1
+    -- @ Glenn Chappell
     -- Add the current character to the lexeme, moving pos to the next
     -- character.
     local function add1()
@@ -199,19 +233,19 @@ function lexit.lex(program)
 
 
     -- skipWhitespace
-    -- @ Glenn Chappell and Hillari Denny
+    -- @ Glenn Chappell
     --
     -- Skip whitespace and comments, moving pos to the beginning of
     -- the next lexeme, or to program:len()+1.
 
-    -- We check for 
+    -- Only modification is the check for comment
     local function skipWhitespace()
         while true do      -- In whitespace
             while isWhitespace(currChar()) do
                 drop1()
             end
 
-            if currChar() ~= "#" then  -- if we only have whitespace, just break
+            if currChar() ~= "#" then  -- comment
                 break
             end
             drop1()
@@ -241,6 +275,7 @@ function lexit.lex(program)
     -- A function with a name like handle_XYZ is the handler function
     -- for state XYZ
 
+    -- @ Glenn Chappell
     local function handle_DONE()
         error("'DONE' state should not be handled\n")
     end
@@ -286,7 +321,6 @@ function lexit.lex(program)
                 add1()
                 state = DONE
                 category = lexit.OP
-
     	else 
     		add1()
     		state = DONE
@@ -294,25 +328,31 @@ function lexit.lex(program)
     	end
     end
 
+    -- ** handle_SINGLEQ and handle_DBLQ **
+    -- @ Hillari Denny
 
+    -- It's possible these two functions could be combined if I added a way to 
+    -- keep track of whether or not we had a single quote or a double quote. 
 
-
+    -- As it stands, the two cases are handled separately. The functions check
+    -- first for an escape character and handle a malformed escape by using
+    -- look ahead to see if we are at the end of the string or not.
+    -- Otherwise, we check to see if we have the correct ending quote or not
     local function handle_SINGLEQ()
 
         if ch == '\\' then
             checkend = lookAhead(2)
-            if checkend == '' then
+            if checkend == '' then -- if we have escape and reach end of input before ending quote
                 add1()
                 add1()
                 state = DONE
                 category = lexit.MAL
-                
-            else
+            else -- otherwise we can add the escape char and the escaped char
                 add1()
                 add1()
             end
 
-        elseif ch == '' then
+        elseif ch == '' then -- If we reach end of input before end quote
             state = DONE
             category = lexit.MAL
         elseif ch == "'" then
@@ -320,27 +360,25 @@ function lexit.lex(program)
             state = DONE
             category = lexit.STRLIT
         else
-            add1()
+            add1() -- keep adding while we have valid string literal
         end
     end
 
-
-
-
+    -- see above handle_SINGLEQ description
     local function handle_DBLQ()
         if ch == "\\" then
             checkend = lookAhead(2)
-            if checkend == '' then  -- if we have escape and reach end of input before ending quote
+            if checkend == '' then  
                 add1()
                 add1()
                 state = DONE
                 category = lexit.MAL
-            else -- otherwise we can add
+            else 
                 add1()
                 add1()
             end
 
-        elseif ch == '' then  -- If we reach end of input before end quote
+        elseif ch == '' then  
             state = DONE
             category = lexit.MAL
 
@@ -353,22 +391,15 @@ function lexit.lex(program)
         end
     end
 
+    -- handle_DIGIT
+    -- @ Hillari Denny 
 
-
-
-
-
-    -- local function handle_ESCAPE()
-    --     if ch == ""
-
-    -- end
-
-
-
-
-
-
-
+    -- Based loosley on the functions provided by Dr. Chappel in lecture and on github
+    -- This function first checks if we have a continuing numeric literal or not.
+    -- We then check for an "e" or "E" and use look ahead to determine if our char is 
+    -- followed by a digit or a digit and a + (to rule out whether or not we have an exponent).
+    -- If so, we pass it to the EXP state. Otherwise, we are done with the num literal. 
+    -- Lastly, if it's not a digit or an exponent following the char, we are also done.
     local function handle_DIGIT()
     	if isDigit(ch) then
     		add1()
@@ -382,7 +413,7 @@ function lexit.lex(program)
                 add1()
                 add1()
                 state = EXP
-    		else
+    		else -- If we have something else after the e, we know it's not an exponent
     			state = DONE 
     			category = lexit.NUMLIT
     		end
@@ -392,7 +423,10 @@ function lexit.lex(program)
     	end
     end
 
+    -- handle_EXP
+    -- @ Hillari Denny 
 
+    -- Function to handle whether or not we have a continuing digit after our legal exponent
     local function handle_EXP()
         if isDigit(ch) then
             add1()
@@ -403,9 +437,12 @@ function lexit.lex(program)
         end
     end
 
+   -- handle_LETTER
+   -- @ Glenn Chappell and Hillari Denny 
 
+   -- Function determines if we have a keyword or ID
    local function handle_LETTER()
-   		if isLetter(ch) or isDigit(ch) or ch == "_" then -- we have a letter followed by another lette or digit
+   		if isLetter(ch) or isDigit(ch) or ch == "_" then -- we have a letter followed by another letter or digit
    			add1()
    		else
    			state = DONE
@@ -431,12 +468,12 @@ function lexit.lex(program)
 	        [EXP]=handle_EXP,
             [SINGLEQ]=handle_SINGLEQ,
             [DBLQ]=handle_DBLQ,
-            [ESCAPE]=handle_ESCAPE,
 	    }
 
     -- -- ***** Iterator Function *****
 
     -- getLexeme
+    -- @ Glenn Chappell
     -- Called each time through the for-in loop.
     -- Returns a pair: lexeme-string (string) and category (int), or
     -- nil, nil if no more lexemes.
