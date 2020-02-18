@@ -198,15 +198,6 @@ function lexit.lex(program)
         return program:sub(pos, pos)
     end
 
-    -- nextChar
-    -- @ Glenn Chappell
-    -- Return the next character, at index pos+1 in program. Return
-    -- value is a single-character string, or the empty string if pos+1
-    -- is past the end.
-    local function nextChar()
-        return program:sub(pos+1, pos+1)
-    end
-
     -- drop1
     -- @ Glenn Chappell
     -- Move pos to the next character.
@@ -229,7 +220,7 @@ function lexit.lex(program)
     -- Skip whitespace and comments, moving pos to the beginning of
     -- the next lexeme, or to program:len()+1.
 
-    -- Only modification is the check for comment
+    -- Only modification is the check for comment character, and checking for newline
     local function skipWhitespace()
         while true do      -- In whitespace
             while isWhitespace(currChar()) do
@@ -255,8 +246,8 @@ function lexit.lex(program)
     -- @ Hillari Denny
     --
 	-- takes a number and returns that number of chars ahead of current position
-    -- this was created for when we want to look ahead more than 1 char, and could
-    -- probably replace currChar()
+    -- this was created for when we want to look ahead more than 1 char, and 
+    -- replaces currChar() from Dr. Chappells code
     local function lookAhead(n)
         return program:sub(pos+n, pos+n)
     end
@@ -297,10 +288,10 @@ function lexit.lex(program)
             state = DBLQ
         elseif 
             -- Handle the double operators first and add both if they are part of specification
-            ch == "<" and nextChar() == "=" or
-            ch == ">" and nextChar() == "=" or
-            ch == "=" and nextChar() == "=" or
-            ch == "!" and nextChar() == "=" then
+            ch == "<" and lookAhead(1) == "=" or
+            ch == ">" and lookAhead(1) == "=" or
+            ch == "=" and lookAhead(1) == "=" or
+            ch == "!" and lookAhead(1) == "=" then
                 add1()
                 add1()
                 state = DONE
