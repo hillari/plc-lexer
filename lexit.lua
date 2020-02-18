@@ -81,6 +81,8 @@ local function isDigit(c)
 end
 
 -- isWhitespace
+-- @ Glenn Chappell and Hillari Denny
+
 -- Returns true if string c is a whitespace character, false otherwise.
 -- According the lexeme specifications, whitespace characters include;
 -- blank, tab(t), vertical-tab(v), new-line(n), carriage-return(r), form-feed(f)
@@ -197,8 +199,12 @@ function lexit.lex(program)
 
 
     -- skipWhitespace
+    -- @ Glenn Chappell and Hillari Denny
+    --
     -- Skip whitespace and comments, moving pos to the beginning of
     -- the next lexeme, or to program:len()+1.
+
+    -- We check for 
     local function skipWhitespace()
         while true do      -- In whitespace
             while isWhitespace(currChar()) do
@@ -221,7 +227,11 @@ function lexit.lex(program)
     end
 
     -- lookAhead
+    -- @ Hillari Denny
+    --
 	-- takes a number and returns that number of chars ahead of current position
+    -- this was created for when we want to look ahead more than 1 char, and could
+    -- probably replace currChar()
     local function lookAhead(n)
         return program:sub(pos+n, pos+n)
     end
@@ -236,6 +246,12 @@ function lexit.lex(program)
     end
 
 
+    -- handle_START 
+    -- @ Glenn Chappell and Hillari Denny
+
+    -- function to handle checking which state we need to transition to on first character
+    -- handling of operators is done here. This could probably be moved to a separate funciton 
+    -- for brevity but...¯\_(ツ)_/¯
     local function handle_START()
     	if isIllegal(ch) then
     		add1()
@@ -254,15 +270,17 @@ function lexit.lex(program)
             add1()
             state = DBLQ
         elseif 
-               ch == "<" and nextChar() == "=" or
-               ch == ">" and nextChar() == "=" or
-               ch == "=" and nextChar() == "=" or
-               ch == "!" and nextChar() == "=" then
+            -- Handle the double operators first and add both if they are part of specification
+            ch == "<" and nextChar() == "=" or
+            ch == ">" and nextChar() == "=" or
+            ch == "=" and nextChar() == "=" or
+            ch == "!" and nextChar() == "=" then
                 add1()
                 add1()
                 state = DONE
                 category = lexit.OP
-        elseif ch == "<" or ch == ">" or ch == "+" or
+        elseif 
+            ch == "<" or ch == ">" or ch == "+" or
             ch == "-" or ch == "*" or ch == "/" or
             ch == "%" or ch == "[" or ch == "]"  or ch == "=" then
                 add1()
@@ -278,25 +296,21 @@ function lexit.lex(program)
 
 
 
--- -------- STOPPED HERE ---------
--- To do:
---    - finish handle_ESCAPE
---    - finish malformed string literals
-
--- currently failing on escapes: " string with escape codes"
--- ie "\\a\"
--- should be "\a\"
-
--- I'm dropping the escape char, but I need to allow for additional escapes after
-
-
-
 
     local function handle_SINGLEQ()
 
         if ch == '\\' then
-            drop()
-
+            checkend = lookAhead(2)
+            if checkend == '' then
+                add1()
+                add1()
+                state = DONE
+                category = lexit.MAL
+                
+            else
+                add1()
+                add1()
+            end
 
         elseif ch == '' then
             state = DONE
@@ -315,19 +329,21 @@ function lexit.lex(program)
 
     local function handle_DBLQ()
         if ch == "\\" then
-            drop()
+            checkend = lookAhead(2)
+            if checkend == '' then  -- if we have escape and reach end of input before ending quote
+                add1()
+                add1()
+                state = DONE
+                category = lexit.MAL
+            else -- otherwise we can add
+                add1()
+                add1()
+            end
 
-        elseif ch == '' then
+        elseif ch == '' then  -- If we reach end of input before end quote
             state = DONE
             category = lexit.MAL
 
-        -- elseif ch == "'" then
-        --     add1()
-        --     state = DONE
-        --     category = lexit.MAL
-
-        -- if ch == '\\' and isPrintableASCII(nextChar(ch)) then
-        --     add1()
         elseif ch == '"' then
             add1()
             state = DONE
