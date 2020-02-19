@@ -184,8 +184,8 @@ function lexit.lex(program)
     local LETTER     = 2
     local DIGIT      = 3
     local EXP        = 4
-    local SINGLEQ    = 5
-    local DBLQ       = 6
+    local STRLIT     = 5
+
 
     -- ***** Character-Related Utility Functions *****
 
@@ -280,12 +280,20 @@ function lexit.lex(program)
     	elseif isDigit(ch) then
     		add1()
     		state = DIGIT
-    	elseif ch == "'" then
-    		add1()
-    		state = SINGLEQ
-        elseif ch == '"' then
-            add1()
-            state = DBLQ
+    	elseif ch == "'" or ch == '"' then 
+            if ch == "'" then
+                endquote = "'" 
+                add1()
+                print("ENDQUOTE  IS: "..endquote)
+                state = STRLIT
+            else
+                endquote = '"'
+                add1()
+                print("ENDQUOTE  IS: "..endquote)
+                state = STRLIT
+            
+    		 
+            end
         elseif 
             -- Handle the double operators first and add both if they are part of specification
             ch == "<" and lookAhead(1) == "=" or
@@ -310,18 +318,15 @@ function lexit.lex(program)
     	end
     end
 
-    -- ** handle_SINGLEQ and handle_DBLQ **
+    -- ** handle_STRLIT
     -- @ Hillari Denny
 
-    -- It's possible these two functions could be combined if I added a way to 
-    -- keep track of whether or not we had a single quote or a double quote. 
-
-    -- As it stands, the two cases are handled separately. The functions check
-    -- first for an escape character and handle a malformed escape by using
-    -- look ahead to see if we are at the end of the string or not.
-    -- Otherwise, we check to see if we have the correct ending quote or not
-    local function handle_SINGLEQ()
-
+    -- This function first checks if we have an escape character. If we do, 
+    -- we check for a malformed string by using lookahead. We then check 
+    -- for another malformed string or the correct ending quote (using the
+    -- global variable we set in handle_START). Otherwise we're still in
+    -- a valid string literal and can keep adding chars. 
+    local function handle_STRLIT()
         if ch == '\\' then
             checkend = lookAhead(2)
             if checkend == '' then -- if we have escape and reach end of input before ending quote
@@ -337,7 +342,7 @@ function lexit.lex(program)
         elseif ch == '' then -- If we reach end of input before end quote
             state = DONE
             category = lexit.MAL
-        elseif ch == "'" then
+        elseif ch == endquote then
             add1()
             state = DONE
             category = lexit.STRLIT
@@ -346,42 +351,14 @@ function lexit.lex(program)
         end
     end
 
-    -- see above handle_SINGLEQ description
-    local function handle_DBLQ()
-        if ch == "\\" then
-            checkend = lookAhead(2)
-            if checkend == '' then  
-                add1()
-                add1()
-                state = DONE
-                category = lexit.MAL
-            else 
-                add1()
-                add1()
-            end
-
-        elseif ch == '' then  
-            state = DONE
-            category = lexit.MAL
-
-        elseif ch == '"' then
-            add1()
-            state = DONE
-            category = lexit.STRLIT
-        else
-            add1()
-        end
-    end
-
     -- handle_DIGIT
     -- @ Hillari Denny 
 
-    -- Based loosley on the functions provided by Dr. Chappel in lecture and on github
-    -- This function first checks if we have a continuing numeric literal or not.
-    -- We then check for an "e" or "E" and use look ahead to determine if our char is 
-    -- followed by a digit or a digit and a + (to rule out whether or not we have an exponent).
-    -- If so, we pass it to the EXP state. Otherwise, we are done with the num literal. 
-    -- Lastly, if it's not a digit or an exponent following the char, we are also done.
+    -- Based loosley on the functions provided by Dr. Chappel in lecture 
+    -- and github. First we check if we have a continuing numeric literal.
+    -- We then use check for e/E and use lookahead to see if it's an expopnent.
+    -- If so, we go to the EXP state. Otherwise, we are done with our numlit.
+    -- Lastly, if it's no longer a digit or an exponent, we are also done.
     local function handle_DIGIT()
     	if isDigit(ch) then
     		add1()
@@ -448,8 +425,7 @@ function lexit.lex(program)
 	        [LETTER]=handle_LETTER,
             [DIGIT]=handle_DIGIT,
 	        [EXP]=handle_EXP,
-            [SINGLEQ]=handle_SINGLEQ,
-            [DBLQ]=handle_DBLQ,
+            [STRLIT]=handle_STRLIT,
 	    }
 
     -- -- ***** Iterator Function *****
