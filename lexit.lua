@@ -29,8 +29,7 @@
 -- In the code procided in lecture and on github. Each function contains 
 -- the author names and a brief description of it's purpose.
 --
--- There is probably some logic that could be re-written to be more 
--- efficient and readable, but it passes all tests in lexit_test.lua 
+-- It passes all tests in lexit_test.lua 
 -- Overall, this was a very enjoyable programming assignment and the 
 -- test suites provided by Dr. Chappell are amazing!!
 -- =====================================================================
@@ -284,15 +283,11 @@ function lexit.lex(program)
             if ch == "'" then
                 endquote = "'" 
                 add1()
-                print("ENDQUOTE  IS: "..endquote)
                 state = STRLIT
             else
                 endquote = '"'
                 add1()
-                print("ENDQUOTE  IS: "..endquote)
-                state = STRLIT
-            
-    		 
+                state = STRLIT 
             end
         elseif 
             -- Handle the double operators first and add both if they are part of specification
@@ -392,7 +387,6 @@ function lexit.lex(program)
         else
             state = DONE
             category = lexit.NUMLIT
-
         end
     end
 
