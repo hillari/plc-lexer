@@ -26,8 +26,8 @@
 
 -- This program is a lexical analyzer for the Programming Language "Degu".
 -- It uses some of the structure and functions provided by Dr. Chappel
--- In the code procided in lecture and on github. Each function contains 
--- the author names and a brief description of it's purpose.
+-- in lecture and on github. Each function contains author name and a 
+-- brief description of it's purpose.
 --
 -- It passes all tests in lexit_test.lua 
 -- Overall, this was a very enjoyable programming assignment and the 
